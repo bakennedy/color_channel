@@ -1,9 +1,7 @@
 package com.colorchannel;
 
 import android.app.Activity;
-import android.app.ActionBar;
 import android.app.Fragment;
-import android.app.FragmentManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,7 +10,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -24,6 +21,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import android.view.View.OnClickListener;
 import android.media.SoundPool;
@@ -36,6 +35,7 @@ public class MainActivity extends Activity {
             Color.CYAN, Color.YELLOW, Color.MAGENTA};
     String[] colorNames = {"Red", "Green", "Blue",
             "Cyan", "Yellow", "Magenta"};
+    boolean[] colorsUsed = new boolean[6];
     int which = 0;
     int score = 0;
 
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
 
     void readColors() {
         Log.i(TAG, "Reading Colors");
-        InputStream inFile = (InputStream) getResources().openRawResource(R.raw.colors);
+        InputStream inFile = getResources().openRawResource(R.raw.colors);
         String jsonContents = getStringFromInputStream(inFile);
         JSONTokener tokenizer = new JSONTokener(jsonContents);
         JSONObject colorDict;
@@ -84,6 +84,7 @@ public class MainActivity extends Activity {
         int i=0;
         colorValues = new int[length];
         colorNames = new String[length];
+        colorsUsed = new boolean[length];
         Iterator<String> keys = colorDict.keys();
         String name;
         while(keys.hasNext()) {
@@ -176,6 +177,25 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    public ArrayList<Integer> randomColors(int number) {
+        ArrayList<Integer> colors = new ArrayList<Integer>(number);
+        int pick, o = 0;
+        for (int i = colorValues.length - number; i < colorValues.length; i++) {
+            pick = (int) (Math.random() * (i + 1));
+            if (colorsUsed[pick]) {
+                pick = i;
+            }
+            colors.add(o, pick);
+            colorsUsed[pick] = true;
+            o++;
+        }
+        for (o=0;o<number;o++) {
+            colorsUsed[colors.get(o)] = false;
+        }
+        Collections.shuffle(colors);
+        return colors;
+    }
+
     /**
      * A placeholder fragment containing a simple view.
      */
@@ -200,15 +220,17 @@ public class MainActivity extends Activity {
             buttons[7] = (Button) rootView.findViewById(R.id.button8);
             buttons[8] = (Button) rootView.findViewById(R.id.button9);
             for(int i=0;i<9;i++){
-                buttons[i].setTag(new Integer(i));
+                buttons[i].setTag(i);
                 buttons[i].setSoundEffectsEnabled(false);
             }
         }
 
         void colorAll( MainActivity main ) {
             main.which = (int) (Math.random() * 9);
+            ArrayList<Integer> colors = main.randomColors(9);
+            int c;
             for (int i=0; i<9; i++) {
-                int c = (int) (Math.random() * main.colorValues.length);
+                c = colors.get(i);
                 if (i==main.which) setColorName(main.colorNames[c]);
                 setButtonColor(i, main.colorValues[c]);
             }
