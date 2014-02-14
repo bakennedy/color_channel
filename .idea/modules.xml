@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ColorChannel.iml" filepath="$PROJECT_DIR$/ColorChannel.iml" />
+      <module fileurl="file://$PROJECT_DIR$/color_channel.iml" filepath="$PROJECT_DIR$/color_channel.iml" />
       <module fileurl="file://$PROJECT_DIR$/colorchannel/colorchannel.iml" filepath="$PROJECT_DIR$/colorchannel/colorchannel.iml" />
     </modules>
   </component>

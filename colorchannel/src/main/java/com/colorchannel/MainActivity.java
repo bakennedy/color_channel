@@ -40,8 +40,8 @@ public class MainActivity extends Activity {
     int score = 0;
 
     SoundPool sound;
-    int[] success = new int[6];
-    int[] fail = new int[1];
+    int success;
+    int fail;
     boolean loaded = false;
 
     private static String getStringFromInputStream(InputStream inFile) {
@@ -133,24 +133,16 @@ public class MainActivity extends Activity {
     }
 
     public void random_success () {
-        int soundId = (int) (Math.random() * success.length);
-        playSound(success[soundId]);
+        playSound(success);
     }
 
     public void random_fail () {
-        int soundId = (int) (Math.random() * fail.length);
-        playSound(fail[soundId]);
+        playSound(fail);
     }
 
     public void loadSounds () {
-        this.success[0] = this.sound.load(this, R.raw.coin01, 1);
-        this.success[1] = this.sound.load(this, R.raw.coin02, 1);
-        this.success[2] = this.sound.load(this, R.raw.coin03, 1);
-        this.success[3] = this.sound.load(this, R.raw.coin04, 1);
-        this.success[4] = this.sound.load(this, R.raw.coin05, 1);
-        this.success[5] = this.sound.load(this, R.raw.coin06, 1);
-
-        this.fail[0] = this.sound.load(this, R.raw.fail, 1);
+        success = this.sound.load(this, R.raw.success, 1);
+        fail = this.sound.load(this, R.raw.fail, 1);
     }
 
 
