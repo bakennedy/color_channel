@@ -10,6 +10,8 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -24,9 +26,11 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+
 import android.view.View.OnClickListener;
 import android.media.SoundPool;
 import android.media.AudioManager;
+import android.os.Handler;
 
 public class MainActivity extends Activity {
 
@@ -38,6 +42,8 @@ public class MainActivity extends Activity {
     boolean[] colorsUsed = new boolean[6];
     int which = 0;
     int score = 0;
+    int minDistance = 20, maxDistance = 120;
+    PlaceholderFragment frag;
 
     SoundPool sound;
     int success;
@@ -65,6 +71,33 @@ public class MainActivity extends Activity {
             }
         }
         return sb.toString();
+    }
+
+    public ArrayList<Integer> boundedRandom(int color, int minRadius, int maxRadius) {
+        ArrayList<Integer> colors = new ArrayList<Integer>(320);
+        int rmin = minRadius * maxRadius;
+        int rmax = maxRadius * maxRadius;
+        int distance;
+        int c, sred, sgreen, sblue;
+        int dred, dgreen, dblue;
+        int red, green, blue;
+        for (int i=0; i<colorValues.length; i++)  {
+            c = colorValues[i];
+            sred = Color.red(color);
+            sgreen = Color.green(color);
+            sblue = Color.blue(color);
+            dred = Color.red(c);
+            dgreen = Color.green(c);
+            dblue = Color.blue(c);
+            red = dred - sred;
+            green = dgreen - sgreen;
+            blue = dblue - sblue;
+            distance = red * red + green * green + blue * blue;
+            if (distance <= rmax && distance >= rmin && c != color) {
+                colors.add(i);
+            }
+        }
+        return colors;
     }
 
     void readColors() {
@@ -145,7 +178,6 @@ public class MainActivity extends Activity {
         fail = this.sound.load(this, R.raw.fail, 1);
     }
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         
@@ -160,29 +192,44 @@ public class MainActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_reset) {
             score = 0;
             TextView scoreView = (TextView) findViewById(R.id.score);
             scoreView.setText("0");
+            frag.colorAll();
+            return true;
+        } else if (id == R.id.action_easy) {
+            minDistance = 60;
+            maxDistance = 200;
+            frag.colorAll();
+            return true;
+        } else if (id == R.id.action_normal) {
+            minDistance = 20;
+            maxDistance = 120;
+            frag.colorAll();
+            return true;
+        }
+        else if (id == R.id.action_hard) {
+            minDistance = 0;
+            maxDistance = 40;
+            frag.colorAll();
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public ArrayList<Integer> randomColors(int number) {
+    public ArrayList<Integer> randomColors(ArrayList<Integer> colorIndices, int number) {
         ArrayList<Integer> colors = new ArrayList<Integer>(number);
+        boolean[] colorsUsed = new boolean[colorIndices.size()];
         int pick, o = 0;
-        for (int i = colorValues.length - number; i < colorValues.length; i++) {
+        for (int i = colorIndices.size() - number; i < colorIndices.size(); i++) {
             pick = (int) (Math.random() * (i + 1));
             if (colorsUsed[pick]) {
                 pick = i;
             }
-            colors.add(o, pick);
+            colors.add(o, colorIndices.get(pick));
             colorsUsed[pick] = true;
             o++;
-        }
-        for (o=0;o<number;o++) {
-            colorsUsed[colors.get(o)] = false;
         }
         Collections.shuffle(colors);
         return colors;
@@ -197,8 +244,17 @@ public class MainActivity extends Activity {
         TextView colorName;
         View rootView;
         TextView scoreView;
+        MainActivity activity;
+        Animation success_anim, fail_anim, score_success_anim, score_fail_anim;
+        boolean canClick = true;
+
 
         public PlaceholderFragment() {
+        }
+
+        public void onAttach(Activity activity) {
+            super.onAttach(activity);
+            this.activity = (MainActivity) activity;
         }
 
         private void getButtons() {
@@ -217,32 +273,77 @@ public class MainActivity extends Activity {
             }
         }
 
-        void colorAll( MainActivity main ) {
-            main.which = (int) (Math.random() * 9);
-            ArrayList<Integer> colors = main.randomColors(9);
+        void colorAll() {
+            ArrayList<Integer> neighbors;
+            int randomColor, randomColorsColor;
+            do {
+                randomColor = (int) (Math.random() * activity.colorValues.length);
+                randomColorsColor = activity.colorValues[randomColor];
+                neighbors = activity.boundedRandom(randomColorsColor, activity.minDistance, activity.maxDistance);
+            } while (neighbors.size() < 8);
+            activity.which = (int) (Math.random() * 9);
+            ArrayList<Integer> colors = activity.randomColors(neighbors, 8);
             int c;
-            for (int i=0; i<9; i++) {
-                c = colors.get(i);
-                if (i==main.which) setColorName(main.colorNames[c]);
-                setButtonColor(i, main.colorValues[c]);
+            for (int i=0, o=0; i<9; i++) {
+                if (i==activity.which) {
+                    setColorName(activity.colorNames[randomColor]);
+                    setButtonColor(i, randomColorsColor);
+                } else {
+                    c = colors.get(o++);
+                    setButtonColor(i, activity.colorValues[c]);
+                }
             }
         }
 
         public void onClick(View button) {
-            MainActivity main = (MainActivity)getActivity();
-            if ((Integer) button.getTag() == main.which) {
-                main.score++;
-                main.random_success();
+            if (canClick) {
+                canClick = false;
             } else {
-                main.score--;
-                main.random_fail();
+                return;
             }
-            reset(main);
+            success_anim.reset();
+            final Animation score_anim;
+            fail_anim.reset();
+            Handler handler = new Handler();
+            int next_delay;
+            if ((Integer) button.getTag() == activity.which) {
+                activity.score++;
+                activity.random_success();
+                button.startAnimation(success_anim);
+                score_anim = score_success_anim;
+                next_delay = 0;
+            } else {
+                activity.score--;
+                activity.random_fail();
+                button.startAnimation(fail_anim);
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        buttons[activity.which].startAnimation(success_anim);
+                    }
+                }, 500);
+                score_anim = score_fail_anim;
+                next_delay = 500;
+            }
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scoreView.setText(Integer.toString(activity.score));
+                    scoreView.startAnimation(score_anim);
+                }
+            }, 500 + next_delay);
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    colorAll();
+                    canClick = true;
+                }
+            }, 1000 + next_delay);
         }
 
-        public void reset(MainActivity main) {
-            scoreView.setText(Integer.toString(main.score));
-            colorAll(main);
+        public void reset() {
+            scoreView.setText(Integer.toString(activity.score));
+            colorAll();
         }
 
         public void setButtonColor(int button, int color) {
@@ -257,20 +358,24 @@ public class MainActivity extends Activity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
             rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            colorName = (TextView) rootView.findViewById(R.id.textView);
-                scoreView = (TextView) rootView.findViewById(R.id.score);
-                getButtons();
-                return rootView;
-            }
+            return rootView;
+        }
 
-            @Override
-            public void onActivityCreated(Bundle saved) {
-                super.onActivityCreated(saved);
-                MainActivity main = (MainActivity) getActivity();
-                colorAll(main);
-                for(int i=0; i<9; i++) {
-                    buttons[i].setOnClickListener(this);
+        @Override
+        public void onActivityCreated(Bundle saved) {
+            super.onActivityCreated(saved);
+            colorName = (TextView) rootView.findViewById(R.id.textView);
+            scoreView = (TextView) rootView.findViewById(R.id.score);
+            getButtons();
+            activity.frag = this;
+            success_anim = AnimationUtils.loadAnimation(activity, R.anim.tile_success);
+            fail_anim = AnimationUtils.loadAnimation(activity, R.anim.tile_fail);
+            score_success_anim = AnimationUtils.loadAnimation(activity, R.anim.score_success);
+            score_fail_anim = AnimationUtils.loadAnimation(activity, R.anim.score_fail);
+            for(int i=0; i<9; i++) {
+                buttons[i].setOnClickListener(this);
             }
+            colorAll();
         }
     }
 
