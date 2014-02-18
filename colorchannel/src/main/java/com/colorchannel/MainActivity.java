@@ -32,14 +32,17 @@ import android.media.SoundPool;
 import android.media.AudioManager;
 import android.os.Handler;
 
+
 public class MainActivity extends Activity {
 
     final String TAG = "MainActivity";
     int[] colorValues = {Color.RED, Color.GREEN, Color.BLUE,
-            Color.CYAN, Color.YELLOW, Color.MAGENTA};
+            Color.CYAN, Color.YELLOW, Color.MAGENTA,
+            Color.LTGRAY, Color.GRAY, Color.DKGRAY};
     String[] colorNames = {"Red", "Green", "Blue",
-            "Cyan", "Yellow", "Magenta"};
-    boolean[] colorsUsed = new boolean[6];
+            "Cyan", "Yellow", "Magenta",
+            "Light Gray", "Gray", "Dark Gray"};
+    boolean[] colorsUsed = new boolean[9];
     int which = 0;
     int score = 0;
     int minDistance = 20, maxDistance = 120;
@@ -106,6 +109,7 @@ public class MainActivity extends Activity {
         String jsonContents = getStringFromInputStream(inFile);
         JSONTokener tokenizer = new JSONTokener(jsonContents);
         JSONObject colorDict;
+
         try {
             colorDict = (JSONObject) tokenizer.nextValue();
         } catch (JSONException e) {
@@ -137,13 +141,19 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        Log.i(TAG, "Whoa");
+        Log.i(TAG, " == onCreate");
         if (savedInstanceState == null) {
+            Log.i(TAG, " == onCreate (savedInstance == null)");
             getFragmentManager().beginTransaction()
                     .add(R.id.container, new PlaceholderFragment())
                     .commit();
-            readColors();
+        } else {
+            which = savedInstanceState.getInt("which");
+            score = savedInstanceState.getInt("score");
+            minDistance = savedInstanceState.getInt("minDistance");
+            maxDistance = savedInstanceState.getInt("maxDistance");
         }
+        readColors();
         this.setVolumeControlStream(AudioManager.STREAM_MUSIC);
         this.sound = new SoundPool(10, AudioManager.STREAM_MUSIC, 0);
         this.sound.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
@@ -153,6 +163,22 @@ public class MainActivity extends Activity {
             }
         });
         loadSounds();
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        Log.i(TAG, " == onSaveInstanceState");
+        super.onSaveInstanceState(outState);
+        outState.putInt("which", which);
+        outState.putInt("score", score);
+        outState.putInt("minDistance", minDistance);
+        outState.putInt("maxDistance", maxDistance);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        Log.i(TAG, " == onRestoreInstanceState");
+        super.onRestoreInstanceState(savedInstanceState);
     }
 
     public void playSound (int soundId) {
@@ -247,12 +273,14 @@ public class MainActivity extends Activity {
         MainActivity activity;
         Animation success_anim, fail_anim, score_success_anim, score_fail_anim;
         boolean canClick = true;
+        final String TAG = "Fragment";
 
 
         public PlaceholderFragment() {
         }
 
         public void onAttach(Activity activity) {
+            Log.i(TAG, " == onAttach");
             super.onAttach(activity);
             this.activity = (MainActivity) activity;
         }
@@ -357,12 +385,14 @@ public class MainActivity extends Activity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
+            Log.i(TAG, " == onCreateView");
             rootView = inflater.inflate(R.layout.fragment_main, container, false);
             return rootView;
         }
 
         @Override
         public void onActivityCreated(Bundle saved) {
+            Log.i(TAG, " == onActivityCreated");
             super.onActivityCreated(saved);
             colorName = (TextView) rootView.findViewById(R.id.textView);
             scoreView = (TextView) rootView.findViewById(R.id.score);
