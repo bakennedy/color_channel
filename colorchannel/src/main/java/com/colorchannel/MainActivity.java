@@ -267,6 +267,7 @@ public class MainActivity extends Activity {
     public static class PlaceholderFragment extends Fragment implements OnClickListener {
 
         Button[] buttons = new Button[9];
+        int[] buttonColors = new int[9];
         TextView colorName;
         View rootView;
         TextView scoreView;
@@ -313,12 +314,15 @@ public class MainActivity extends Activity {
             ArrayList<Integer> colors = activity.randomColors(neighbors, 8);
             int c;
             for (int i=0, o=0; i<9; i++) {
+
                 if (i==activity.which) {
                     setColorName(activity.colorNames[randomColor]);
                     setButtonColor(i, randomColorsColor);
+                    buttonColors[i] = randomColor;
                 } else {
                     c = colors.get(o++);
                     setButtonColor(i, activity.colorValues[c]);
+                    buttonColors[i] = c;
                 }
             }
         }
